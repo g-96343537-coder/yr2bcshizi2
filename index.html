@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快乐听写大冒险</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #FF9F43;
+            --accent: #54a0ff;
+            --success: #1dd1a1;
+            --error: #ff6b6b;
+            --text: #576574;
+        }
+
+        body {
+            font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+            background-image: url('https://www.pixelstalk.net/wp-content/uploads/2016/10/Cartoons-Desktop-Backgrounds.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        /* 通用卡片样式 */
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 30px;
+            border: 5px solid #fff;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(5px);
+            display: none; /* 默认隐藏所有，JS控制显示 */
+            animation: popIn 0.4s ease;
+        }
+
+        /* 显示当前活动的卡片 */
+        .game-card.active { display: block; }
+
+        h1 { color: var(--accent); font-size: 2rem; margin: 0 0 1rem 0; letter-spacing: 2px; }
+        label { display: block; color: var(--text); font-size: 1.2rem; margin-bottom: 10px; text-align: left; }
+
+        /* --- 登录页样式 --- */
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 3px solid #dfe6e9;
+            border-radius: 15px;
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: 1.2rem;
+            color: var(--text);
+            margin-bottom: 20px;
+            background: white;
+            outline: none;
+        }
+
+        .user-info {
+            background: #ffeaa7;
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: none; /* 登录后显示 */
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        .user-info img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; }
+        .user-info span { font-size: 1.1rem; color: #d35400; }
+
+        .google-btn-wrapper { min-height: 50px; margin: 20px 0; display: flex; justify-content: center; }
+
+        .btn-large {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #e67e22;
+            transition: all 0.1s;
+            width: 100%;
+        }
+        .btn-large:active { transform: translateY(6px); box-shadow: none; }
+        .btn-large:disabled { background: #b2bec3; box-shadow: none; cursor: not-allowed; transform: none; }
+
+        /* --- 游戏页样式 (保持之前的可爱风) --- */
+        .progress-capsule {
+            display: inline-block; background: #ffeaa7; color: #d35400;
+            padding: 5px 20px; border-radius: 20px; font-size: 1.2rem; margin-bottom: 10px;
+        }
+        .speaker-btn {
+            background: var(--primary); color: white; width: 80px; height: 80px;
+            border-radius: 50%; border: none; font-size: 2.2rem; cursor: pointer;
+            box-shadow: 0 8px 0 #e67e22; margin-bottom: 10px;
+        }
+        .speaker-btn:active { transform: translateY(8px); box-shadow: none; }
+        .speaker-btn.playing { animation: bounce 0.6s infinite alternate; }
+
+        .btn-hint {
+            background: #fff; border: 2px solid var(--primary); color: var(--primary);
+            padding: 5px 15px; border-radius: 20px; font-family: 'ZCOOL KuaiLe'; cursor: pointer;
+        }
+        .hint-bubble {
+            display: none; background: #fff2cc; color: #d35400; padding: 10px;
+            border-radius: 10px; margin-top: 10px; font-size: 1rem;
+        }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .option-btn {
+            background: white; border: 3px solid #dfe6e9; border-radius: 15px; padding: 15px 5px;
+            font-family: 'ZCOOL KuaiLe'; font-size: 1.4rem; color: var(--text); cursor: pointer;
+            box-shadow: 0 5px 0 #b2bec3; transition: 0.1s;
+        }
+        .option-btn:active { transform: translateY(5px); box-shadow: none; }
+        .option-btn.correct { background: var(--success); color: white; border-color: #10ac84; box-shadow: 0 5px 0 #10ac84; }
+        .option-btn.wrong { background: var(--error); color: white; border-color: #ee5253; box-shadow: 0 5px 0 #ee5253; }
+        .option-btn:disabled { pointer-events: none; }
+
+        /* --- 结算页样式 --- */
+        .score-big { font-size: 5rem; color: var(--primary); margin: 10px 0; text-shadow: 3px 3px 0 rgba(0,0,0,0.1); }
+        .status-box { background: #f0fdf4; color: #15803d; padding: 10px; border-radius: 10px; font-size: 1rem; display: none; }
+
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes bounce { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+    <div id="view-login" class="game-card active">
+        <h1>👋 欢迎来到听写课</h1>
+        
+        <div style="text-align: left; margin-top: 20px;">
+            <label>请选择班级 (Class)</label>
+            <select id="classSelect" onchange="checkLoginState()">
+                <option value="" disabled selected>点击选择...</option>
+                <option value="2M">2M</option>
+                <option value="2K">2K</option>
+                <option value="2B">2B</option>
+                <option value="2H">2H</option>
+                <option value="2J">2J</option>
+                <option value="2U">2U</option>
+            </select>
+        </div>
+
+        <div id="userInfo" class="user-info">
+            <img id="userImg" src="" alt="">
+            <span id="userNameDisplay"></span>
+        </div>
+
+        <div class="google-btn-wrapper" id="googleBtnContainer">
+            <div id="g_id_onload"
+                 data-client_id="1006856013626-uk3eq5tchv9t65gqosb0k6rst7hi1eeb.apps.googleusercontent.com" 
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="center"></div>
+        </div>
+
+        <button id="startAppBtn" class="btn-large" onclick="startGame()" disabled>请先登录</button>
+        <p style="font-size: 0.8rem; color: #aaa; margin-top: 20px;">© 华文课室 Online</p>
+    </div>
+
+    <div id="view-quiz" class="game-card">
+        <h1>✨ 听音辨词 ✨</h1>
+        <div class="progress-capsule" id="progress-text">1 / 12</div>
+        
+        <div>
+            <button class="speaker-btn" onclick="playAudio()">🔊</button>
+            <p style="font-size:0.9rem; color:#888; margin:5px 0;">点喇叭听声音</p>
+        </div>
+
+        <div>
+            <button class="btn-hint" onclick="toggleHint()">💡 小提示</button>
+            <div class="hint-bubble" id="current-hint">...</div>
+        </div>
+
+        <div class="options-grid" id="options-area"></div>
+        <div id="feedback-text" style="font-size:1.2rem; height:30px; font-weight:bold;"></div>
+
+        <button id="next-btn" class="btn-large" style="margin-top:10px; font-size:1.2rem; padding:10px 30px; display:none;" onclick="nextQuestion()">下一题 ➡</button>
+    </div>
+
+    <div id="view-result" class="game-card">
+        <div style="font-size: 4rem;">🎉</div>
+        <h1>练习完成!</h1>
+        <p>你的得分是</p>
+        <div class="score-big" id="final-score">0</div>
+        
+        <div id="upload-status" style="color: #555; margin-bottom: 20px;">
+            正在提交分数... ⏳
+        </div>
+        <div id="success-msg" class="status-box">
+            ✅ 成绩已成功发给老师！
+        </div>
+
+        <button class="btn-large" style="background:#1dd1a1; margin-top:20px;" onclick="location.reload()">再玩一次</button>
+    </div>
+
+    <script>
+        // --- 配置 ---
+        // 这里的 URL 使用您之前提供的最新版 GAS URL
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyMWPAnGP5W0mNavu5EEX1tGb5fhDnIAG5TKLTzSeMp8XLwwwuNUAuT3JxhopUsVlBXjA/exec";
+        
+        // --- 全局变量 ---
+        let userProfile = { name: "", email: "", class: "" };
+        let currentIdx = 0;
+        let score = 0;
+        let isAnswered = false;
+        const synth = window.speechSynthesis;
+
+        // --- 题库 (已更新为：篱笆，旁边，灯笼，栽种，提水，浇水，果树，摘水果，果实，香甜多汁，称赞，挖泥土) ---
+        const questions = [
+            { correct: "篱笆", wrong: "墙壁", hint: "围在花园周围，用木头或竹子做的" },
+            { correct: "旁边", wrong: "远方", hint: "不在前面，不在后面，就在你的左边或右边" },
+            { correct: "灯笼", wrong: "电灯", hint: "中秋节时，小朋友喜欢提着的发光玩具" },
+            { correct: "栽种", wrong: "采摘", hint: "把小树苗或种子放进泥土里" },
+            { correct: "提水", wrong: "喝水", hint: "用手拿着水桶，把它拿起来" },
+            { correct: "浇水", wrong: "玩水", hint: "给花草树木“喝水”，让它们快快长大" },
+            { correct: "果树", wrong: "小草", hint: "会结出苹果、橙子或榴莲的树" },
+            { correct: "摘水果", wrong: "买水果", hint: "伸出手，把树上的果实拿下来" },
+            { correct: "果实", wrong: "树叶", hint: "植物开花后结出的东西，通常很好吃" },
+            { correct: "香甜多汁", wrong: "又酸又苦", hint: "形容西瓜或橙子很好吃，水分很多" },
+            { correct: "称赞", wrong: "批评", hint: "竖起大拇指，夸奖别人做得好" },
+            { correct: "挖泥土", wrong: "扫地", hint: "用铲子把地上的土翻开" }
+        ];
+
+        // --- 1. 登录逻辑 ---
+        
+        function parseJwt(token) {
+            var base64Url = token.split('.')[1];
+            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        function handleCredentialResponse(response) {
+            const responsePayload = parseJwt(response.credential);
+            
+            userProfile.name = responsePayload.name;
+            userProfile.email = responsePayload.email;
+            userProfile.picture = responsePayload.picture;
+
+            document.getElementById("userImg").src = userProfile.picture;
+            document.getElementById("userNameDisplay").textContent = "你好, " + userProfile.name;
+            document.getElementById("userInfo").style.display = "flex";
+            document.getElementById("googleBtnContainer").style.display = "none";
+
+            checkLoginState();
+        }
+
+        function checkLoginState() {
+            const classVal = document.getElementById("classSelect").value;
+            const startBtn = document.getElementById("startAppBtn");
+            
+            userProfile.class = classVal;
+
+            if (classVal && userProfile.email) {
+                startBtn.disabled = false;
+                startBtn.textContent = "开始挑战 🚀";
+            } else {
+                startBtn.disabled = true;
+            }
+        }
+
+        function startGame() {
+            document.getElementById("view-login").classList.remove("active");
+            document.getElementById("view-quiz").classList.add("active");
+            loadQuestion();
+        }
+
+        // --- 2. 游戏逻辑 ---
+
+        function loadQuestion() {
+            isAnswered = false;
+            const q = questions[currentIdx];
+            
+            document.getElementById("progress-text").textContent = `${currentIdx + 1} / ${questions.length}`;
+            document.getElementById("feedback-text").textContent = "";
+            document.getElementById("next-btn").style.display = "none";
+            
+            const hintEl = document.getElementById("current-hint");
+            hintEl.style.display = "none";
+            hintEl.textContent = q.hint;
+
+            let options = [
+                { text: q.correct, isCorrect: true },
+                { text: q.wrong, isCorrect: false }
+            ];
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsArea = document.getElementById("options-area");
+            optionsArea.innerHTML = "";
+            options.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "option-btn";
+                btn.textContent = opt.text;
+                btn.onclick = () => checkChoice(btn, opt.isCorrect);
+                optionsArea.appendChild(btn);
+            });
+        }
+
+        function toggleHint() {
+            const hintEl = document.getElementById("current-hint");
+            hintEl.style.display = (hintEl.style.display === "block") ? "none" : "block";
+        }
+
+        function playAudio() {
+            if (synth.speaking) synth.cancel();
+            const btn = document.querySelector(".speaker-btn");
+            btn.classList.add("playing");
+            
+            const utterThis = new SpeechSynthesisUtterance(questions[currentIdx].correct);
+            utterThis.lang = 'zh-CN'; 
+            utterThis.rate = 0.8; 
+            utterThis.onend = () => btn.classList.remove("playing");
+            synth.speak(utterThis);
+        }
+
+        function checkChoice(btn, isCorrect) {
+            if (isAnswered) return;
+            isAnswered = true;
+
+            const feedbackEl = document.getElementById("feedback-text");
+            const allBtns = document.querySelectorAll(".option-btn");
+
+            if (isCorrect) {
+                btn.classList.add("correct");
+                feedbackEl.textContent = "🎉 答对了！";
+                feedbackEl.style.color = "var(--success)";
+                score++;
+                playAudio();
+            } else {
+                btn.classList.add("wrong");
+                feedbackEl.textContent = "😅 哎呀，选错了";
+                feedbackEl.style.color = "var(--error)";
+                allBtns.forEach(b => {
+                    if (b.textContent === questions[currentIdx].correct) b.classList.add("correct");
+                });
+            }
+
+            allBtns.forEach(b => b.disabled = true);
+            document.getElementById("next-btn").style.display = "inline-block";
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx >= questions.length) {
+                showResults();
+            } else {
+                loadQuestion();
+            }
+        }
+
+        // --- 3. 结算与提交 ---
+
+        function showResults() {
+            document.getElementById("view-quiz").classList.remove("active");
+            document.getElementById("view-result").classList.add("active");
+            document.getElementById("final-score").textContent = score;
+
+            submitScoreToGAS();
+        }
+
+        function submitScoreToGAS() {
+            // 再次获取最新的班级选择 (修复“未知班级”问题)
+            const latestClass = document.getElementById("classSelect").value || "未选择";
+            
+            const formData = new URLSearchParams();
+            formData.append('name', userProfile.name);
+            formData.append('email', userProfile.email);
+            formData.append('studentClass', latestClass); // 使用最新获取的班级
+            formData.append('score', score);
+
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            })
+            .then(() => {
+                document.getElementById("upload-status").style.display = "none";
+                document.getElementById("success-msg").style.display = "inline-block";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById("upload-status").textContent = "提交失败，请截图发给老师。";
+            });
+        }
+    </script>
+</body>
+</html>
