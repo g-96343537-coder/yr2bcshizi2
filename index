@@ -216,7 +216,7 @@
     <script>
         // --- 配置 ---
         // 这里的 URL 使用您之前提供的最新版 GAS URL
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxGoWVZNQYJvdvchx8iY_ejhGiyq77C7fGEF_Fc0-o9stGOVWjlK1BGyA5_HUGxXAawUQ/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyMWPAnGP5W0mNavu5EEX1tGb5fhDnIAG5TKLTzSeMp8XLwwwuNUAuT3JxhopUsVlBXjA/exec";
         
         // --- 全局变量 ---
         let userProfile = { name: "", email: "", class: "" };
